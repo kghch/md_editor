@@ -36,7 +36,8 @@ class Application(tornado.web.Application):
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=False,
-            debug=True
+            debug=True,
+            default_handler_class=NotFoundHandler
         )
         super(Application, self).__init__(handlers, **settings)
 
@@ -175,6 +176,10 @@ class ShowByFidHandler(tornado.web.RequestHandler):
         else:
             self.render("error.html", error="The page hasn't been developed yet.")
 
+
+class NotFoundHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("error.html", error="The page hasn't been developed yet.")
 
 def main():
     http_server = tornado.httpserver.HTTPServer(Application())
