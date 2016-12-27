@@ -3,7 +3,7 @@ function preview() {
   $.ajax({
     type: 'POST',
     url: '/preview',
-    data: myCodeMirror.getValue(),
+    data: $('#raw').val(),
     contentType: 'text/plain',
     success: function(data) {
       $('#mirror').html(data);
@@ -16,7 +16,7 @@ function createDoc() {
     type: 'GET',
     url: '/create',
     success: function(data) {
-      myCodeMirror.setValue('');
+      $('#raw').val('');
       $('#doc_id').html(data['fid']);
       document.title = data['title'];
     }
@@ -53,7 +53,7 @@ $(document).ready(function() {
   $(document).on('keydown', function(e){
       if(e.ctrlKey && e.which === 83){ // Check for the Ctrl key being pressed, and if the key = [S] (83)
           $('#sync_tooltip').show();
-          raw = myCodeMirror.getValue(),
+          raw = $('#raw').val(),
           html = $('#mirror').html();
           fid = $('#doc_id').html();
           sync = $("#sync").is(':checked');
@@ -69,18 +69,9 @@ $(document).ready(function() {
             }
           });
           e.preventDefault();
-          myCodeMirror.focus();
       }
   });
 
-  myCodeMirror = CodeMirror.fromTextArea(document.getElementById('raw'), {
-        value: "",
-        mode: {name:"markdown"},
-        indentUnit: "4",
-        theme: "neat"
-  });
-
-  myCodeMirror.on("change", function(instance, changeObj) {preview();});
 
   $('#doc_bar').on('click', function() {
     $.ajax({
