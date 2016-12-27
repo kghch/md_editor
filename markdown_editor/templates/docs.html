@@ -1,0 +1,7 @@
+<div class="item"><i class="folder open outline icon"></i></div>
+{% for doc in docs %}
+<div class="item" style="text-align: left;">
+    <a href="/show/{{ doc['fid'] }}">{{ doc['title'] }}</a>
+    <a onclick="deleteDoc({{ doc['fid'] }}, '{{ doc['title'] }}')"><i class="trash icon" style="float: right; cursor: pointer;"></i></a>
+</div>
+{% end %}

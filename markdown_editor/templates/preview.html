@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <script src="{{static_url('lib/js/jquery.min.js')}}" type='text/javascript'></script>
+
+    <link href="{{static_url('lib/css/markdown.css')}}" rel="stylesheet">
+    <link href="{{static_url('lib/css/markdown_edit.css')}}" rel="stylesheet">
+    <link href="{{static_url('lib/css/pygments.css')}}" rel="stylesheet">
+    <link href="{{static_url('lib/css/semantic.min.css')}}" rel="stylesheet">
+  </head>
+  <body style="height:100%">
+    <div class="html-output markdown-body" style="overflow-y:scroll; height: 100%;">
+    {% raw html %}
+    </div>
+  </body>
+</html>

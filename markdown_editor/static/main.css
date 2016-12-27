@@ -1,0 +1,16 @@
+.ui.button {background-color: transparent;}
+.ui.button:hover {background-color: transparent; border: 1px solid #CACBCD;}
+#sidebar {width: 300px; overflow-y:scroll;}
+#doc_id {display: none;}
+.header {padding-top: 10px; line-height: 40px;}
+#doc_bar, #time, #logo {float: left;}
+#time {color: #008C79;}
+.ui.button.float_right {float: right;}
+.show {height:100%; padding: 10px; padding-top: 10px;}
+.left.form-control {width: 48%; position: absolute; top: 5%; left: 1%; overflow: hidden; height: 850px; border: ridge;}
+#raw {width: 98%; height: 98%; resize: none;}
+.right {width: 48%; position: absolute; top: 5%; right: 1%; overflow: hidden; height: 850px;}
+#mirror {width: 98%; height: 100%; border: ridge; overflow-y: scroll;}
+#sync_tooltip {position: absolute; right: 5px; bottom: 5px; display: none; background-color:#00B5AD; color: white; padding: 5px;}
+
+a.item:hover {background: green !important;}
