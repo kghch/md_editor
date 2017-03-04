@@ -11,4 +11,11 @@ requirements:
 - tornado
 - torndb
 - markdown
-- Evernote Python SDK（optional）
+- Evernote Python SDK（optional，不打算做和印象笔记的同步了，没有去申请产品环境的KEY）
+
+todo:
+- 输入框文字装饰
+- 图片支持
+- 任务列表
+- 导出pdf
+- 主题切换
