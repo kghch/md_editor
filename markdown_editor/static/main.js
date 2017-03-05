@@ -17,6 +17,7 @@ function createDoc() {
     url: '/create',
     success: function(data) {
       $('#raw').val('');
+      $('#mirror').html('');
       $('#doc_id').html(data['fid']);
       document.title = data['title'];
     }
@@ -27,6 +28,16 @@ function previewDoc() {
   fid = $('#doc_id').html();
   window.location.href = '/showpreview/' + fid
 }
+
+function test() {
+    fid = $('#doc_id').html();
+    window.location.href = '/showpreview/' + fid
+}
+
+function exportDoc() {
+    window.print()
+}
+
 
 function sidebar() {
     $('.ui.labeled.icon.sidebar').sidebar('toggle');
@@ -56,11 +67,10 @@ $(document).ready(function() {
           raw = $('#raw').val(),
           html = $('#mirror').html();
           fid = $('#doc_id').html();
-          sync = $("#sync").is(':checked');
           $.ajax({
             type: 'POST',
             url: '/save',
-            data: JSON.stringify({fid: fid, raw: raw, html: html, sync: sync}),
+            data: JSON.stringify({fid: fid, raw: raw, html: html}),
             contentType: 'json',
             success: function(data) {
                 $('#sync_tooltip').hide();

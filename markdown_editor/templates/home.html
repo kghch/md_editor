@@ -26,15 +26,16 @@
       <p id='doc_id'>{{fid}}</p>
       <div class='header'>
         <button class="ui button" id="doc_bar" onclick="sidebar()" data-tooltip="文档管理" data-position="right center" data-inverted=""><i class="book icon"></i></button>
-        <div class="ui checkbox" style="display:none; float:left;"><input type="checkbox" id="sync"><label>sync with Evernote</label></div>
         <div id="time">
           {% if fid %}
           创建时间：{{ created }}
           {% end %}
         </div>
         <div id="logo">&nbsp &nbsp &nbsp markdown editor <a href="#"><i class="github icon"></i></a></div>
-        <button class="ui button float_right" onclick="previewDoc();" data-tooltip="预览文档" data-position="bottom left" data-inverted=""><i class="send icon"></i></button>
-        <button class="ui button float_right" onclick="createDoc()" data-tooltip="创建文档" data-position="bottom left" data-inverted=""><i class="file outline icon"></i></button>
+
+        <button class="ui button float_right" onclick="previewDoc();" data-tooltip="预览" data-position="bottom left" data-inverted=""><i class="send icon"></i></button>
+        <button class="ui button float_right" onclick="createDoc()" data-tooltip="创建" data-position="bottom left" data-inverted=""><i class="file outline icon"></i></button>
+        <button class="ui button float_right" onclick="exportDoc()"><i class="file pdf outline icon"></i> </button>
       </div>
       <div class='show' >
         <div class="left"><textarea id='raw' oninput="preview();">{{raw}}</textarea></div>
@@ -66,3 +67,5 @@
     </div>
   </body>
 </html>
+
+
