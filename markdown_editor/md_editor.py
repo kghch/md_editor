@@ -176,7 +176,6 @@ class ShowByFidHandler(tornado.web.RequestHandler):
     def get(self, fid):
         doc = Doc.get(Doc.fid == fid)
         if doc:
-            doc = doc[0]
             self.render('home.html', fid=fid, title=doc.title, raw=doc.raw, html=doc.html,
                         created=doc.created)
         else:
