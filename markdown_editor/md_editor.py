@@ -14,7 +14,9 @@ import markdown
 
 MARKDOWN_EXT = ('codehilite', 'extra')
 
-checked_pattern = re.compile(r'<li>\[(?P<checked>[xX ])\]')
+checked_pattern1 = re.compile(r'<li>\[(?P<checked>[xX ])\]')
+checked_pattern2 = re.compile(r'<li>\n<p>\[(?P<checked>[xX ])\]')
+
 img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
 
@@ -63,9 +65,13 @@ class PreviewHandler(tornado.web.RequestHandler):
         html_text = md.reset().convert(unicode_raw_text)
 
         # 支持任务列表
-        def convert_checkbox(match):
+        def convert_checkbox1(match):
             return '<li><input type="checkbox" disabled>' if match.group('checked') == ' ' \
                 else '<li><input type="checkbox" disabled checked>'
+
+        def convert_checkbox2(match):
+            return '<li>\n<p><input type="checkbox" disabled>' if match.group('checked') == ' ' \
+                else '<li>\n<p><input type="checkbox" disabled checked>'
 
         # 限制插入图片长宽
         def convert_img(match):
@@ -75,9 +81,12 @@ class PreviewHandler(tornado.web.RequestHandler):
         def convert_src(match):
             return 'src="' + match.group('src') + '"'
 
-        html_text = re.sub(checked_pattern, convert_checkbox, html_text)
-        html_text = re.sub(img_pattern, convert_img, html_text)
-        html_text = re.sub(src_pattern, convert_src, html_text)
+        pattern_actions = {checked_pattern1: convert_checkbox1,
+                           checked_pattern2: convert_checkbox2,
+                           img_pattern: convert_img,
+                           src_pattern: convert_src}
+        for pattern, action in pattern_actions.items():
+            html_text = re.sub(pattern, action, html_text)
 
         self.write(html_text)
 

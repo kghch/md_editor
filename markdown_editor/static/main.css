@@ -29,6 +29,8 @@ a.item:hover {background: green !important;}
   }
   #mirror {
     position: absolute;
+    height: auto;
+    overflow-y: auto;
     left: 0;
     top: 0;
   }
