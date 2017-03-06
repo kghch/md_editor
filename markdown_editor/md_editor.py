@@ -15,6 +15,7 @@ import markdown
 MARKDOWN_EXT = ('codehilite', 'extra')
 
 checked_pattern = re.compile(r'<li>\[(?P<checked>[xX ])\]')
+img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
 
 db = torndb.Connection(host='127.0.0.1:3306', database='docs', user='root', password='123456')
 
@@ -60,11 +61,16 @@ class PreviewHandler(tornado.web.RequestHandler):
         md = markdown.Markdown(extensions=MARKDOWN_EXT)
         html_text = md.reset().convert(unicode_raw_text)
 
-        def do_convert(match):
+        def convert_checkbox(match):
             return '<li><input type="checkbox" disabled>' if match.group('checked') == ' ' \
                 else '<li><input type="checkbox" disabled checked>'
 
-        html_text = re.sub(checked_pattern, do_convert, html_text)
+        def convert_img(match):
+            return match.group('alttext') + ' width=200, height=200'
+
+        html_text = re.sub(checked_pattern, convert_checkbox, html_text)
+        html_text = re.sub(img_pattern, convert_img, html_text)
+
         self.write(html_text)
 
 
@@ -82,14 +88,11 @@ class SaveHandler(tornado.web.RequestHandler):
     def post(self):
         data = json.loads(self.request.body)
         doc = db.get("SELECT * FROM doc WHERE fid=%s", int(data['fid']))
-        g = re.search(r"<h[1-6]>[^<]+</h[1-6]>", data['html'])
-        if g:
-            title = g.group(0)[4:-5]
-        else:
-            title = "untitled"
+        origin_title = re.search(r"<h[1-6]>[^<]+</h[1-6]>", data['html'])
+        title = origin_title.group(0)[4:-5] if origin_title else "untitled"
+
         if doc:
             fid = doc['fid']
-
             db.execute("UPDATE doc set raw=%s, html=%s, title=%s, updated=UTC_TIMESTAMP() WHERE fid=%s", \
                        data['raw'], data['html'], title, int(fid))
         else:
@@ -102,8 +105,16 @@ class SaveHandler(tornado.web.RequestHandler):
 
 class DeleteHandler(tornado.web.RequestHandler):
     def post(self):
-        fid = self.request.body
-        db.execute("DELETE FROM doc WHERE fid=%s", int(fid))
+        data = json.loads(self.request.body)
+        del_fid = data['delfid']
+        cur_fid = data['curfid']
+        print del_fid
+        print cur_fid
+        db.execute("DELETE FROM doc WHERE fid=%s", int(del_fid))
+        refresh = 0
+        if del_fid == cur_fid:
+            refresh = 1
+        self.write({'refresh': refresh})
 
 
 class ShowPreviewHandler(tornado.web.RequestHandler):

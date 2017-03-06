@@ -47,13 +47,19 @@ function deleteDoc(fid, title) {
     $('.ui.icon.header').html('<i class="trash icon"></i>彻底删除文件&nbsp<span style="color:#00B5AD">' + title + '</span>');
     $(".ui.basic.modal").modal({
         onApprove: function() {
+            var delfid = fid.toString();
+            var curfid = $('#doc_id').html();
             $.ajax({
                 type: 'POST',
                 url: '/delete',
-                data: fid.toString(),
-                contentType: 'text/plain',
+                data: JSON.stringify({delfid: delfid, curfid: curfid}),
+                contentType: 'json',
                 success: function(data) {
-                    sidebar();
+                    if(data['refresh'] == '1') {
+                        window.location.href = '/'
+                    } else {
+                        sidebar();
+                    }
                 }
             });
         }
