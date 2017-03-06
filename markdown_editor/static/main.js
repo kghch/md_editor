@@ -19,6 +19,7 @@ function createDoc() {
       $('#raw').val('');
       $('#mirror').html('');
       $('#doc_id').html(data['fid']);
+      $('#time').html('');
       document.title = data['title'];
     }
   });
@@ -82,6 +83,9 @@ $(document).ready(function() {
                 $('#sync_tooltip').hide();
                 document.title = data['title'];
                 $('#doc_id').html(data['fid']);
+                if(data['created']) {
+                    $('#time').html('创建时间：' + data['created']);
+                }
             }
           });
           e.preventDefault();

@@ -3,14 +3,14 @@
 import os
 import json
 import re
+import time
 
 import tornado
 import tornado.web
 import tornado.httpserver
-import torndb
+import peewee
 import markdown
 
-# todo: 使用ORM(peewee)
 
 MARKDOWN_EXT = ('codehilite', 'extra')
 
@@ -20,7 +20,23 @@ checked_pattern2 = re.compile(r'<li>\n<p>\[(?P<checked>[xX ])\]')
 img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
 
-db = torndb.Connection(host='127.0.0.1:3306', database='docs', user='root', password='123456')
+DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', password='123456')
+DB.connect()
+
+
+class BaseModel(peewee.Model):
+    class Meta:
+        database = DB
+
+
+class Doc(BaseModel):
+    id = peewee.IntegerField()
+    fid = peewee.IntegerField()
+    title = peewee.CharField()
+    raw = peewee.TextField()
+    html = peewee.TextField()
+    created = peewee.DateTimeField()
+    updated = peewee.DateTimeField()
 
 
 class Application(tornado.web.Application):
@@ -49,10 +65,11 @@ class Application(tornado.web.Application):
 
 class HomeHandler(tornado.web.RequestHandler):
     def get(self):
-        latest = db.get("SELECT * FROM doc ORDER BY updated DESC LIMIT 1")
+        latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
         if latest:
-            self.render('home.html', fid=latest['fid'], title=latest['title'], raw=latest['raw'], html=latest['html'],
-                        created=latest['created'])
+            latest = latest[0]
+            self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
+                        created=latest.created)
         else:
             self.render('home.html', fid='0', title='untitled', raw='', html='')
 
@@ -93,9 +110,10 @@ class PreviewHandler(tornado.web.RequestHandler):
 
 class CreateHandler(tornado.web.RequestHandler):
     def get(self):
-        doc = db.get("SELECT * FROM doc ORDER BY fid DESC LIMIT 1")
+        doc = Doc.select().order_by(Doc.fid.desc()).limit(1)
         if doc:
-            doc_id = doc['fid'] + 1
+            doc = doc[0]
+            doc_id = doc.fid + 1
         else:
             doc_id = 1
         self.write({'fid': str(doc_id), 'title': 'untitled'})
@@ -104,20 +122,26 @@ class CreateHandler(tornado.web.RequestHandler):
 class SaveHandler(tornado.web.RequestHandler):
     def post(self):
         data = json.loads(self.request.body)
-        doc = db.get("SELECT * FROM doc WHERE fid=%s", int(data['fid']))
         origin_title = re.search(r"<h[1-6]>[^<]+</h[1-6]>", data['html'])
         title = origin_title.group(0)[4:-5] if origin_title else "untitled"
-
-        if doc:
-            fid = doc['fid']
-            db.execute("UPDATE doc set raw=%s, html=%s, title=%s, updated=UTC_TIMESTAMP() WHERE fid=%s", \
-                       data['raw'], data['html'], title, int(fid))
-        else:
+        created = ''
+        try:
+            doc = Doc.get(Doc.fid == int(data['fid']))
+        except:
             fid = int(data['fid'])
-            db.execute("""INSERT INTO doc(fid, title, raw, html, created, updated)
-            VALUES(%s, %s, %s, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())""", fid, title, data['raw'], data['html'])
+            created = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+            Doc.create(fid=fid, title=title, raw=data['raw'], html=data['html'], created=created, updated=created)
+        else:
+            fid = doc.fid
+            updated = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+            doc = Doc.get(Doc.fid == int(fid))
+            doc.raw = data['raw']
+            doc.html = data['html']
+            doc.title = title
+            doc.updated = updated
+            doc.save()
 
-        self.write({"fid": str(fid), "title": title})
+        self.write({"fid": str(fid), "title": title, "created": created})
 
 
 class DeleteHandler(tornado.web.RequestHandler):
@@ -125,7 +149,7 @@ class DeleteHandler(tornado.web.RequestHandler):
         data = json.loads(self.request.body)
         del_fid = data['delfid']
         cur_fid = data['curfid']
-        db.execute("DELETE FROM doc WHERE fid=%s", int(del_fid))
+        Doc.delete().where(Doc.fid == int(del_fid)).execute()
         refresh = 0
         if del_fid == cur_fid:
             refresh = 1
@@ -134,29 +158,27 @@ class DeleteHandler(tornado.web.RequestHandler):
 
 class ShowPreviewHandler(tornado.web.RequestHandler):
     def get(self, fid):
-        doc = db.get("SELECT * FROM doc WHERE fid=%s", fid)
+        doc = Doc.get(Doc.fid == fid)
         if doc:
-            self.render('preview.html', fid=fid, html=doc['html'], title=doc['title'])
+            self.render('preview.html', fid=fid, html=doc.html, title=doc.title)
         else:
             self.render("error.html", error="The page hasn't been developed yet.")
 
 
 class MydocsHandler(tornado.web.RequestHandler):
     def get(self):
-        docs = db.query("SELECT * FROM doc ORDER BY created DESC")
-        for doc in docs:
-            doc['updated'] = doc['updated'].strftime("%Y-%m-%d %H:%M:%S")
-            doc['created'] = doc['created'].strftime("%Y-%m-%d %H:%M:%S")
+        docs = Doc.select().order_by(Doc.created.desc())
         table_html = self.render_string("docs.html", docs=docs)
         self.write(table_html)
 
 
 class ShowByFidHandler(tornado.web.RequestHandler):
     def get(self, fid):
-        doc = db.get("SELECT * FROM doc WHERE fid=%s", fid)
+        doc = Doc.get(Doc.fid == fid)
         if doc:
-            self.render('home.html', fid=fid, title=doc['title'], raw=doc['raw'], html=doc['html'],
-                        created=doc['created'])
+            doc = doc[0]
+            self.render('home.html', fid=fid, title=doc.title, raw=doc.raw, html=doc.html,
+                        created=doc.created)
         else:
             self.render("error.html", error="The page hasn't been developed yet.")
 
