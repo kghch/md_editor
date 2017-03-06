@@ -14,6 +14,8 @@ import markdown
 
 MARKDOWN_EXT = ('codehilite', 'extra')
 
+checked_pattern = re.compile(r'<li>\[(?P<checked>[xX ])\]')
+
 db = torndb.Connection(host='127.0.0.1:3306', database='docs', user='root', password='123456')
 
 
@@ -58,6 +60,11 @@ class PreviewHandler(tornado.web.RequestHandler):
         md = markdown.Markdown(extensions=MARKDOWN_EXT)
         html_text = md.reset().convert(unicode_raw_text)
 
+        def do_convert(match):
+            return '<li><input type="checkbox" disabled>' if match.group('checked') == ' ' \
+                else '<li><input type="checkbox" disabled checked>'
+
+        html_text = re.sub(checked_pattern, do_convert, html_text)
         self.write(html_text)
 
 
