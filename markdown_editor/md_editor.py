@@ -16,6 +16,7 @@ MARKDOWN_EXT = ('codehilite', 'extra')
 
 checked_pattern = re.compile(r'<li>\[(?P<checked>[xX ])\]')
 img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
+src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
 
 db = torndb.Connection(host='127.0.0.1:3306', database='docs', user='root', password='123456')
 
@@ -61,15 +62,22 @@ class PreviewHandler(tornado.web.RequestHandler):
         md = markdown.Markdown(extensions=MARKDOWN_EXT)
         html_text = md.reset().convert(unicode_raw_text)
 
+        # 支持任务列表
         def convert_checkbox(match):
             return '<li><input type="checkbox" disabled>' if match.group('checked') == ' ' \
                 else '<li><input type="checkbox" disabled checked>'
 
+        # 限制插入图片长宽
         def convert_img(match):
             return match.group('alttext') + ' width=200, height=200'
 
+        # 支持img out link
+        def convert_src(match):
+            return 'src="' + match.group('src') + '"'
+
         html_text = re.sub(checked_pattern, convert_checkbox, html_text)
         html_text = re.sub(img_pattern, convert_img, html_text)
+        html_text = re.sub(src_pattern, convert_src, html_text)
 
         self.write(html_text)
 
@@ -108,8 +116,6 @@ class DeleteHandler(tornado.web.RequestHandler):
         data = json.loads(self.request.body)
         del_fid = data['delfid']
         cur_fid = data['curfid']
-        print del_fid
-        print cur_fid
         db.execute("DELETE FROM doc WHERE fid=%s", int(del_fid))
         refresh = 0
         if del_fid == cur_fid:
