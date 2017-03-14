@@ -21,7 +21,6 @@ img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
 
 DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', password='123456')
-DB.connect()
 
 
 class BaseModel(peewee.Model):
@@ -63,7 +62,18 @@ class Application(tornado.web.Application):
         super(Application, self).__init__(handlers, **settings)
 
 
-class HomeHandler(tornado.web.RequestHandler):
+class PeeweeRequestHandler(tornado.web.RequestHandler):
+    def prepare(self):
+        DB.connect()
+        return super(PeeweeRequestHandler, self).prepare()
+
+    def on_finish(self):
+        if not DB.is_closed():
+            DB.close()
+        return super(PeeweeRequestHandler, self).on_finish()
+
+
+class HomeHandler(PeeweeRequestHandler):
     def get(self):
         latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
         if latest:
@@ -74,7 +84,7 @@ class HomeHandler(tornado.web.RequestHandler):
             self.render('home.html', fid='0', title='untitled', raw='', html='')
 
 
-class PreviewHandler(tornado.web.RequestHandler):
+class PreviewHandler(PeeweeRequestHandler):
     def post(self):
         raw_text = self.request.body
         unicode_raw_text = unicode(raw_text, "utf-8")
@@ -108,7 +118,7 @@ class PreviewHandler(tornado.web.RequestHandler):
         self.write(html_text)
 
 
-class CreateHandler(tornado.web.RequestHandler):
+class CreateHandler(PeeweeRequestHandler):
     def get(self):
         doc = Doc.select().order_by(Doc.fid.desc()).limit(1)
         if doc:
@@ -119,7 +129,7 @@ class CreateHandler(tornado.web.RequestHandler):
         self.write({'fid': str(doc_id), 'title': 'untitled'})
 
 
-class SaveHandler(tornado.web.RequestHandler):
+class SaveHandler(PeeweeRequestHandler):
     def post(self):
         data = json.loads(self.request.body)
         origin_title = re.search(r"<h[1-6]>[^<]+</h[1-6]>", data['html'])
@@ -144,7 +154,7 @@ class SaveHandler(tornado.web.RequestHandler):
         self.write({"fid": str(fid), "title": title, "created": created})
 
 
-class DeleteHandler(tornado.web.RequestHandler):
+class DeleteHandler(PeeweeRequestHandler):
     def post(self):
         data = json.loads(self.request.body)
         del_fid = data['delfid']
@@ -156,7 +166,7 @@ class DeleteHandler(tornado.web.RequestHandler):
         self.write({'refresh': refresh})
 
 
-class ShowPreviewHandler(tornado.web.RequestHandler):
+class ShowPreviewHandler(PeeweeRequestHandler):
     def get(self, fid):
         doc = Doc.get(Doc.fid == fid)
         if doc:
@@ -165,14 +175,14 @@ class ShowPreviewHandler(tornado.web.RequestHandler):
             self.render("error.html", error="The page hasn't been developed yet.")
 
 
-class MydocsHandler(tornado.web.RequestHandler):
+class MydocsHandler(PeeweeRequestHandler):
     def get(self):
         docs = Doc.select().order_by(Doc.created.desc())
         table_html = self.render_string("docs.html", docs=docs)
         self.write(table_html)
 
 
-class ShowByFidHandler(tornado.web.RequestHandler):
+class ShowByFidHandler(PeeweeRequestHandler):
     def get(self, fid):
         doc = Doc.get(Doc.fid == fid)
         if doc:
@@ -182,7 +192,7 @@ class ShowByFidHandler(tornado.web.RequestHandler):
             self.render("error.html", error="The page hasn't been developed yet.")
 
 
-class NotFoundHandler(tornado.web.RequestHandler):
+class NotFoundHandler(PeeweeRequestHandler):
     def get(self):
         self.render("error.html", error="The page hasn't been developed yet.")
 
