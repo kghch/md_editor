@@ -105,11 +105,13 @@ class CallbackHandler(PeeweeRequestHandler):
             'redirect_uri': 'http://59.110.139.171:9876/home'
         }
         res = requests.post(URL_ACCESS_TOKEN, data=payload)
-        if res.code != '200':
+	
+        if res.status_code != 200:
             self.render('error.html', error='github登录失败')
         access_token = res.content
-        rep = requests.get('%S?%s' % (URL_GET_USER, access_token))
-        user = rep.content
+        rep = requests.get('%s?%s' % (URL_GET_USER, access_token))
+        user = json.loads(rep.content)
+
         latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
         if latest:
             latest = latest[0]
