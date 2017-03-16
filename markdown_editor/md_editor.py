@@ -26,6 +26,7 @@ DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', pass
 
 global_vars = threading.local()
 global_vars.login = False
+global_vars.user = False
 
 
 class BaseModel(peewee.Model):
@@ -41,6 +42,7 @@ class Doc(BaseModel):
     html = peewee.TextField()
     created = peewee.DateTimeField()
     updated = peewee.DateTimeField()
+    author = peewee.CharField()
 
 
 class Application(tornado.web.Application):
@@ -89,14 +91,14 @@ class HomeHandler(PeeweeRequestHandler):
     def get(self):
         login = global_vars.login
         if login:
-            user = OauthGithub.get_user(login)
-            latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
+            user = global_vars.user
+            latest = Doc.select().where(Doc.author == user).order_by(Doc.updated.desc()).limit(1)
             if latest:
                 latest = latest[0]
                 self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
-                            created=latest.created, github_name=user['login'])
+                            created=latest.created, github_name=user)
             else:
-                self.render('home.html', fid='0', title='untitled', raw='', html='', github_name=user['login'])
+                self.render('home.html', fid='0', title='untitled', raw='', html='', github_name=user)
 
         else:
             self.render('home.html', fid='0', title='untitled', raw='哈哈哈没登录', html='哈哈哈没登录', github_name='未登录')
@@ -111,6 +113,8 @@ class CallbackHandler(PeeweeRequestHandler):
             self.render('error.html', error=e.message)
         else:
             global_vars.login = access_token
+            user = OauthGithub.get_user(access_token)
+            global_vars.user = user
             self.redirect('/home')
 
 
@@ -198,28 +202,40 @@ class DeleteHandler(PeeweeRequestHandler):
 
 class ShowPreviewHandler(PeeweeRequestHandler):
     def get(self, fid):
-        doc = Doc.get(Doc.fid == fid)
-        if doc:
-            self.render('preview.html', fid=fid, html=doc.html, title=doc.title)
+        login = global_vars.login
+        if login:
+            doc = Doc.get(Doc.fid == fid, Doc.author == global_vars.user)
+            if doc:
+                self.render('preview.html', fid=fid, html=doc.html, title=doc.title)
+            else:
+                self.render("error.html", error="The page hasn't been developed yet.")
         else:
-            self.render("error.html", error="The page hasn't been developed yet.")
+            self.render("login.html")
 
 
 class MydocsHandler(PeeweeRequestHandler):
     def get(self):
-        docs = Doc.select().order_by(Doc.created.desc())
-        table_html = self.render_string("docs.html", docs=docs)
-        self.write(table_html)
+        login = global_vars.login
+        if login:
+            docs = Doc.select().order_by(Doc.created.desc())
+            table_html = self.render_string("docs.html", docs=docs)
+            self.write(table_html)
+        else:
+            self.write("")
 
 
 class ShowByFidHandler(PeeweeRequestHandler):
     def get(self, fid):
-        doc = Doc.get(Doc.fid == fid)
-        if doc:
-            self.render('home.html', fid=fid, title=doc.title, raw=doc.raw, html=doc.html,
-                        created=doc.created)
+        login = global_vars.login
+        if login:
+            doc = Doc.get(Doc.fid == fid, Doc.author == global_vars.user)
+            if doc:
+                self.render('home.html', fid=fid, title=doc.title, raw=doc.raw, html=doc.html,
+                            created=doc.created, github_name=global_vars.user)
+            else:
+                self.render("error.html", error="The page hasn't been developed yet.")
         else:
-            self.render("error.html", error="The page hasn't been developed yet.")
+            self.render("login.html")
 
 
 class NotFoundHandler(PeeweeRequestHandler):
