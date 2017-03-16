@@ -10,6 +10,9 @@ import tornado.web
 import tornado.httpserver
 import peewee
 import markdown
+import requests
+
+from OAUTH_GITHUB import *
 
 
 MARKDOWN_EXT = ('codehilite', 'extra')
@@ -41,7 +44,9 @@ class Doc(BaseModel):
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r'/', HomeHandler),
+            (r'/', LoginHandler),
+            (r'/home', HomeHandler),
+            (r'/callback', CallbackHandler),
             (r'/preview', PreviewHandler),
             (r'/create', CreateHandler),
             (r'/save', SaveHandler),
@@ -73,8 +78,23 @@ class PeeweeRequestHandler(tornado.web.RequestHandler):
         return super(PeeweeRequestHandler, self).on_finish()
 
 
+class LoginHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render('login.html')
+
+
 class HomeHandler(PeeweeRequestHandler):
     def get(self):
+        code = self.get_argument('code', None)
+        payload = {'grant_type': 'authorization_code',
+                   'client_id': CLIENT_ID,
+                   'client_secret': CLIENT_SECRET,
+                   'code': code,
+                   'redirect_uri': 'http://59.110.139.171:9876'
+                   }
+        resp = requests.post(URL_ACCESS_TOKEN, data=payload)
+        print resp
+        
         latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
         if latest:
             latest = latest[0]
@@ -82,6 +102,19 @@ class HomeHandler(PeeweeRequestHandler):
                         created=latest.created)
         else:
             self.render('home.html', fid='0', title='untitled', raw='', html='')
+
+
+class CallbackHandler(PeeweeRequestHandler):
+    def get(self, code):
+        payload = {
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'code': code,
+            'accept': 'json'
+        }
+        res = requests.post('https://github.com/login/oauth/access_token', data=payload)
+        access_token = json.loads(res)['access_token']
+        auth_res = requests.post('https://api.github.com/user', data={'access_token': access_token, 'accept': 'json'})
 
 
 class PreviewHandler(PeeweeRequestHandler):
