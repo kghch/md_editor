@@ -96,12 +96,12 @@ class HomeHandler(PeeweeRequestHandler):
             if latest:
                 latest = latest[0]
                 self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
-                            created=latest.created, github_name=user)
+                            created=latest.created, github_name=user['login'])
             else:
-                self.render('home.html', fid='0', title='untitled', raw='', html='', github_name=user)
+                self.render('home.html', fid='0', title='untitled', raw='', html='', created='',github_name=user['login'])
 
         else:
-            self.render('home.html', fid='0', title='untitled', raw='哈哈哈没登录', html='哈哈哈没登录', github_name='未登录')
+            self.redirect('/')
 
 
 class CallbackHandler(PeeweeRequestHandler):
