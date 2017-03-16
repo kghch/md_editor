@@ -25,7 +25,7 @@ DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', pass
 
 
 global_vars = threading.local()
-global_vars['login'] = False
+global_vars.login = False
 
 
 class BaseModel(peewee.Model):
@@ -87,7 +87,7 @@ class LoginHandler(tornado.web.RequestHandler):
 
 class HomeHandler(PeeweeRequestHandler):
     def get(self):
-        login = global_vars['login']
+        login = global_vars.login
         if login:
             user = OauthGithub.get_user(login)
             latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
@@ -110,7 +110,7 @@ class CallbackHandler(PeeweeRequestHandler):
         except LoginError, e:
             self.render('error.html', error=e.message)
         else:
-            global_vars['login'] = access_token
+            global_vars.login = access_token
             self.redirect('/home')
 
 
