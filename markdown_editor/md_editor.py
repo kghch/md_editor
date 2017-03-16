@@ -89,19 +89,18 @@ class LoginHandler(tornado.web.RequestHandler):
 
 class HomeHandler(PeeweeRequestHandler):
     def get(self):
-        login = global_vars.login
-        if login:
-            user = global_vars.user
+        user = self.get_cookie('user', None)
+        if not user:
+            self.redirect('/')
+        else:
+            self.set_cookie('user', user, expires=600)
             latest = Doc.select().where(Doc.author == user).order_by(Doc.updated.desc()).limit(1)
             if latest:
                 latest = latest[0]
                 self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
-                            created=latest.created, github_name=user['login'])
+                            created=latest.created, github_name=user)
             else:
-                self.render('home.html', fid='0', title='untitled', raw='', html='', created='',github_name=user['login'])
-
-        else:
-            self.redirect('/')
+                self.render('home.html', fid='0', title='untitled', raw='', html='', created='',github_name=user)
 
 
 class CallbackHandler(PeeweeRequestHandler):
@@ -115,6 +114,7 @@ class CallbackHandler(PeeweeRequestHandler):
             global_vars.login = access_token
             user = OauthGithub.get_user(access_token)
             global_vars.user = user
+            self.set_cookie('user', user['login'], expires=600)
             self.redirect('/home')
 
 
@@ -154,88 +154,106 @@ class PreviewHandler(PeeweeRequestHandler):
 
 class CreateHandler(PeeweeRequestHandler):
     def get(self):
-        doc = Doc.select().order_by(Doc.fid.desc()).limit(1)
-        if doc:
-            doc = doc[0]
-            doc_id = doc.fid + 1
+        user = self.get_cookie('user', None)
+        if user:
+            self.set_cookie('user', user, expires=600)
+            doc = Doc.select().where(Doc.author == user).order_by(Doc.fid.desc()).limit(1)
+            if doc:
+                doc = doc[0]
+                doc_id = doc.fid + 1
+            else:
+                doc_id = 1
+            self.write({'fid': str(doc_id), 'title': 'untitled'})
         else:
-            doc_id = 1
-        self.write({'fid': str(doc_id), 'title': 'untitled'})
+            self.redirect('/')
 
 
 class SaveHandler(PeeweeRequestHandler):
     def post(self):
-        data = json.loads(self.request.body)
-        origin_title = re.search(r"<h[1-6]>[^<]+</h[1-6]>", data['html'])
-        title = origin_title.group(0)[4:-5] if origin_title else "untitled"
-        created = ''
-        try:
-            doc = Doc.get(Doc.fid == int(data['fid']))
-        except:
-            fid = int(data['fid'])
-            created = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-            Doc.create(fid=fid, title=title, raw=data['raw'], html=data['html'], created=created, updated=created)
+        user = self.get_cookie('user', None)
+        if not user:
+            self.redirect('/')
         else:
-            fid = doc.fid
-            updated = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-            doc = Doc.get(Doc.fid == int(fid))
-            doc.raw = data['raw']
-            doc.html = data['html']
-            doc.title = title
-            doc.updated = updated
-            doc.save()
+            data = json.loads(self.request.body)
+            origin_title = re.search(r"<h[1-6]>[^<]+</h[1-6]>", data['html'])
+            title = origin_title.group(0)[4:-5] if origin_title else "untitled"
+            created = ''
+            self.set_cookie('user', user, expires=600)
+            try:
+                doc = Doc.get(Doc.fid == int(data['fid']), Doc.author == user)
+            except:
+                fid = int(data['fid'])
+                created = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+                Doc.create(fid=fid, title=title, raw=data['raw'], html=data['html'], created=created, updated=created, author=user)
+            else:
+                fid = doc.fid
+                updated = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+                doc = Doc.get(Doc.fid == int(fid))
+                doc.raw = data['raw']
+                doc.html = data['html']
+                doc.title = title
+                doc.updated = updated
+                doc.save()
 
-        self.write({"fid": str(fid), "title": title, "created": created})
+            self.write({"fid": str(fid), "title": title, "created": created})
 
 
 class DeleteHandler(PeeweeRequestHandler):
     def post(self):
-        data = json.loads(self.request.body)
-        del_fid = data['delfid']
-        cur_fid = data['curfid']
-        Doc.delete().where(Doc.fid == int(del_fid)).execute()
-        refresh = 0
-        if del_fid == cur_fid:
-            refresh = 1
-        self.write({'refresh': refresh})
+        user = self.get_cookie('user', None)
+        if not user:
+            self.redirect('/')
+        else:
+            self.set_cookie('user', user, expires=600)
+            data = json.loads(self.request.body)
+            del_fid = data['delfid']
+            cur_fid = data['curfid']
+            Doc.delete().where(Doc.fid == int(del_fid), Doc.author == user).execute()
+            refresh = 0
+            if del_fid == cur_fid:
+                refresh = 1
+            self.write({'refresh': refresh})
 
 
 class ShowPreviewHandler(PeeweeRequestHandler):
     def get(self, fid):
-        login = global_vars.login
-        if login:
-            doc = Doc.get(Doc.fid == fid, Doc.author == global_vars.user)
+        user = self.get_cookie('user', None)
+        if user:
+            self.set_cookie('user', user, expires=600)
+            doc = Doc.get(Doc.fid == fid, Doc.author == user)
             if doc:
                 self.render('preview.html', fid=fid, html=doc.html, title=doc.title)
             else:
                 self.render("error.html", error="The page hasn't been developed yet.")
         else:
-            self.render("login.html")
+            self.redirect('/')
 
 
 class MydocsHandler(PeeweeRequestHandler):
     def get(self):
-        login = global_vars.login
-        if login:
-            docs = Doc.select().order_by(Doc.created.desc())
+        user = self.get_cookie('user', None)
+        if not user:
+            self.redirect('/')
+        else:
+            self.set_cookie('user', user, expires=600)
+            docs = Doc.select().where(Doc.author == user).order_by(Doc.created.desc())
             table_html = self.render_string("docs.html", docs=docs)
             self.write(table_html)
-        else:
-            self.write("")
 
 
 class ShowByFidHandler(PeeweeRequestHandler):
     def get(self, fid):
-        login = global_vars.login
-        if login:
-            doc = Doc.get(Doc.fid == fid, Doc.author == global_vars.user)
+        user = self.get_cookie('user', None)
+        if not user:
+            self.redirect('/')
+        else:
+            self.set_cookie('user', user, expires=600)
+            doc = Doc.get(Doc.fid == fid, Doc.author == user)
             if doc:
                 self.render('home.html', fid=fid, title=doc.title, raw=doc.raw, html=doc.html,
-                            created=doc.created, github_name=global_vars.user)
+                            created=doc.created, github_name=user)
             else:
                 self.render("error.html", error="The page hasn't been developed yet.")
-        else:
-            self.render("login.html")
 
 
 class NotFoundHandler(PeeweeRequestHandler):
