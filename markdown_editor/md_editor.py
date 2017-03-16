@@ -85,39 +85,39 @@ class LoginHandler(tornado.web.RequestHandler):
 
 class HomeHandler(PeeweeRequestHandler):
     def get(self):
-        code = self.get_argument('code', None)
-        payload = {'grant_type': 'authorization_code',
-                   'client_id': CLIENT_ID,
-                   'client_secret': CLIENT_SECRET,
-                   'code': code,
-                   'redirect_uri': 'http://59.110.139.171:9876'
-                   }
-        resp = requests.post(URL_ACCESS_TOKEN, data=payload)
-        print resp
-        
+
         latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
         if latest:
             latest = latest[0]
             self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
-                        created=latest.created)
+                        created=latest.created, github_name='')
         else:
-            self.render('home.html', fid='0', title='untitled', raw='', html='')
+            self.render('home.html', fid='0', title='untitled', raw='', html='', github_name='')
 
 
 class CallbackHandler(PeeweeRequestHandler):
     def get(self):
-	code = self.get_argument('code', None)
+        code = self.get_argument('code', None)
         payload = {
             'client_id': CLIENT_ID,
             'client_secret': CLIENT_SECRET,
             'code': code,
             'redirect_uri': 'http://59.110.139.171:9876/home'
         }
-        res = requests.post('https://github.com/login/oauth/access_token', data=payload)
-	access_token = res.content
-	rep = requests.get('https://api.github.com/user?%s' % access_token)
-	user = rep.content	
-        self.redirect('/home')
+        res = requests.post(URL_ACCESS_TOKEN, data=payload)
+        if res.code != '200':
+            self.render('error.html', error='github登录失败')
+        access_token = res.content
+        rep = requests.get('%S?%s' % (URL_GET_USER, access_token))
+        user = rep.content
+        latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
+        if latest:
+            latest = latest[0]
+            self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
+                        created=latest.created, github_name=user['login'])
+        else:
+            self.render('home.html', fid='0', title='untitled', raw='', html='', github_name=user['login'])
+
 
 class PreviewHandler(PeeweeRequestHandler):
     def post(self):
