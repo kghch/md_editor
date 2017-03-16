@@ -105,17 +105,19 @@ class HomeHandler(PeeweeRequestHandler):
 
 
 class CallbackHandler(PeeweeRequestHandler):
-    def get(self, code):
+    def get(self):
+	code = self.get_argument('code', None)
         payload = {
             'client_id': CLIENT_ID,
             'client_secret': CLIENT_SECRET,
             'code': code,
-            'accept': 'json'
+            'redirect_uri': 'http://59.110.139.171:9876/home'
         }
         res = requests.post('https://github.com/login/oauth/access_token', data=payload)
-        access_token = json.loads(res)['access_token']
-        auth_res = requests.post('https://api.github.com/user', data={'access_token': access_token, 'accept': 'json'})
-
+	access_token = res.content
+	rep = requests.get('https://api.github.com/user?%s' % access_token)
+	user = rep.content	
+        self.redirect('/home')
 
 class PreviewHandler(PeeweeRequestHandler):
     def post(self):
