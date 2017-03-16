@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os
-import json
 import re
 import time
+import threading
 
 import tornado
 import tornado.web
 import tornado.httpserver
 import peewee
 import markdown
-import requests
 
 from OAUTH_GITHUB import *
 
@@ -19,11 +18,14 @@ MARKDOWN_EXT = ('codehilite', 'extra')
 
 checked_pattern1 = re.compile(r'<li>\[(?P<checked>[xX ])\]')
 checked_pattern2 = re.compile(r'<li>\n<p>\[(?P<checked>[xX ])\]')
-
 img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
 
 DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', password='123456')
+
+
+global_vars = threading.local()
+global_vars['login'] = False
 
 
 class BaseModel(peewee.Model):
@@ -85,40 +87,31 @@ class LoginHandler(tornado.web.RequestHandler):
 
 class HomeHandler(PeeweeRequestHandler):
     def get(self):
+        login = global_vars['login']
+        if login:
+            user = OauthGithub.get_user(login)
+            latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
+            if latest:
+                latest = latest[0]
+                self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
+                            created=latest.created, github_name=user['login'])
+            else:
+                self.render('home.html', fid='0', title='untitled', raw='', html='', github_name=user['login'])
 
-        latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
-        if latest:
-            latest = latest[0]
-            self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
-                        created=latest.created, github_name='')
         else:
-            self.render('home.html', fid='0', title='untitled', raw='', html='', github_name='')
+            self.render('home.html', fid='0', title='untitled', raw='哈哈哈没登录', html='哈哈哈没登录', github_name='未登录')
 
 
 class CallbackHandler(PeeweeRequestHandler):
     def get(self):
         code = self.get_argument('code', None)
-        payload = {
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'code': code,
-            'redirect_uri': 'http://59.110.139.171:9876/home'
-        }
-        res = requests.post(URL_ACCESS_TOKEN, data=payload)
-	
-        if res.status_code != 200:
-            self.render('error.html', error='github登录失败')
-        access_token = res.content
-        rep = requests.get('%s?%s' % (URL_GET_USER, access_token))
-        user = json.loads(rep.content)
-
-        latest = Doc.select().order_by(Doc.updated.desc()).limit(1)
-        if latest:
-            latest = latest[0]
-            self.render('home.html', fid=latest.fid, title=latest.title, raw=latest.raw, html=latest.html,
-                        created=latest.created, github_name=user['login'])
+        try:
+            access_token = OauthGithub.get_access_token(code)
+        except LoginError, e:
+            self.render('error.html', error=e.message)
         else:
-            self.render('home.html', fid='0', title='untitled', raw='', html='', github_name=user['login'])
+            global_vars['login'] = access_token
+            self.redirect('/home')
 
 
 class PreviewHandler(PeeweeRequestHandler):
