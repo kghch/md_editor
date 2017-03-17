@@ -2,9 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <link href="{{static_url('lib/css/semantic.min.css')}}" rel="stylesheet">
+    <title>登录</title>
 </head>
 <body>
-    <a href="https://github.com/login/oauth/authorize?scope=user:email&client_id=f0e82131f29cf4177970&redirect_uri=http://59.110.139.171:9876/callback">login with Github</a>
+    <div style="padding: 15px; text-align: center;">
+        <h3>
+            an online editor <br>
+            supports markdown syntax <br>
+        </h3>
+
+        <button class="ui vk button" onclick="location.href='https://github.com/login/oauth/authorize?scope=user:email&client_id=f0e82131f29cf4177970&redirect_uri=http://59.110.139.171:9876/callback'" type="button">
+          <i class="github icon"></i>
+          登录
+        </button>
+        <br><br>
+        <small>Just for coding practice, but if any issues, please submit at <a href="https://github.com/kghch/md_editor">the github page</a>.</small>
+
+
+
+    </div>
+
+
 </body>
 </html>
