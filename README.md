@@ -6,15 +6,15 @@ markdown编辑器web端。
 功能:
 
 1. github第三方登录；
-2. //查看修改自己的笔记，支持md语法；
+2. 查看修改自己的笔记，支持md语法；
 3. 打印和预览功能；
-4. 与印象笔记（沙箱环境）同步，这部分功能放在`markdown_editor.py`和`inlinecss.py`和`syncevernote.py`中；
+4. ~~与印象笔记（沙箱环境）同步，这部分功能放在`markdown_editor.py`和`inlinecss.py`和`syncevernote.py`中；~~
 
 requirements:
 - tornado
 - torndb
 - markdown
-- Evernote Python SDK（optional，不打算做和印象笔记的同步了，没有去申请产品环境的KEY）
+- ~~Evernote Python SDK（optional，不打算做和印象笔记的同步了，没有去申请产品环境的KEY）~~
 
 运行方式:
 
