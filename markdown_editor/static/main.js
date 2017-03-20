@@ -57,7 +57,7 @@ function deleteDoc(fid, title) {
                 contentType: 'json',
                 success: function(data) {
                     if(data['refresh'] == '1') {
-                        window.location.href = '/'
+                        window.location.href = '/home'
                     } else {
                         sidebar();
                     }
