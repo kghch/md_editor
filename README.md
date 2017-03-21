@@ -1,29 +1,41 @@
-[Demo](http://note.9beans.site/)
 
-markdown编辑器web端。
-样式（包括sidebar）仿照马克飞象；markdown语法的渲染格式抄袭[ncornette](https://github.com/ncornette/Python-Markdown-Editor.git )
+## online markdown editor
 
-功能:
+[Try Demo here.](http://59.110.139.171)
 
-1. github第三方登录；
-2. 查看修改自己的笔记，支持md语法；
-3. 打印和预览功能；
-4. ~~与印象笔记（沙箱环境）同步，这部分功能放在`markdown_editor.py`和`inlinecss.py`和`syncevernote.py`中；~~
+### Features
 
-requirements:
+- Github OAuth2.0 login
+- Notes archive and preview
+- Export to PDF
+- ~~Synchronize with Evernote~~
+
+### Preview
+
+![Show My Docs](https://ooo.0o0.ooo/2017/03/21/58d0e04940d22.png)
+
+### Requirements
+
 - tornado
-- torndb
 - markdown
-- ~~Evernote Python SDK（optional，不打算做和印象笔记的同步了，没有去申请产品环境的KEY）~~
+- requests
+- peewee
 
-运行方式:
+### Attention
 
-`python md_editor.py`
+The sidebar style is inspired by [maxiang.io](http://maxiang.io), the markdown css style copies from [ncornette](https://github.com/ncornette/Python-Markdown-Editor.git )
 
-todo:
-- [ ] 输入框文字装饰
-- [x] 图片支持
-- [x] 任务列表
-- [x] 导出pdf
-- [ ] 主题切换
-- [ ] 滚动条同步
+### Usage
+
+1. MySQL database and tables prepared
+2. Apply for a github OAuth application [here](https://github.com/settings/developers) and configure `CLIENT_ID` and `CLIENT_SECRET` in `OAUTH_GITHUG.PY`
+3. Run `python md_editor.py`
+
+
+### Todo:
+- [ ] Input box's highlighting
+- [x] Pictures syntax in markdown
+- [x] Todo lists syntax in markdown
+- [x] Export to PDF
+- [ ] Multiple color themes 
+- [ ] Scrollbar synchronization
