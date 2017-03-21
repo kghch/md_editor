@@ -1,4 +1,4 @@
-[Demo](http://59.110.139.171/)
+[Demo](http://note.9beans.site/)
 
 markdown编辑器web端。
 样式（包括sidebar）仿照马克飞象；markdown语法的渲染格式抄袭[ncornette](https://github.com/ncornette/Python-Markdown-Editor.git )
