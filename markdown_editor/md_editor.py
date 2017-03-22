@@ -18,7 +18,6 @@ MARKDOWN_EXT = ('codehilite', 'extra')
 
 checked_pattern1 = re.compile(r'<li>\[(?P<checked>[xX ])\]')
 checked_pattern2 = re.compile(r'<li>\n<p>\[(?P<checked>[xX ])\]')
-img_pattern = re.compile(r'(?P<alttext><img alt="[^"]*")')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
 
 DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', password='123456')
@@ -84,11 +83,11 @@ class PeeweeRequestHandler(tornado.web.RequestHandler):
 
 class LoginHandler(tornado.web.RequestHandler):
     def get(self):
-	user = self.get_cookie('user')
-	if user:
-	    self.redirect('/home')
-	else:
-	    self.render('login.html')
+        user = self.get_cookie('user')
+        if user:
+            self.redirect('/home')
+        else:
+            self.render('login.html')
 
 
 class HomeHandler(PeeweeRequestHandler):
@@ -102,8 +101,8 @@ class HomeHandler(PeeweeRequestHandler):
                             created=latest.created, github_name=user)
             else:
                 self.render('home.html', fid='0', title='untitled', raw='', html='', created='',github_name=user)
-	else:
-	    self.redirect('/')
+        else:
+            self.redirect('/')
 
 
 class CallbackHandler(PeeweeRequestHandler):
@@ -113,8 +112,6 @@ class CallbackHandler(PeeweeRequestHandler):
             access_token = OauthGithub.get_access_token(code)
         except LoginError, e:
             self.render('error.html', error=e.message)
-	except ConnectionError, e:
-	    self.render('error.html', error='connection failed with github')
         else:
             global_vars.login = access_token
             user = OauthGithub.get_user(access_token)
@@ -139,17 +136,12 @@ class PreviewHandler(PeeweeRequestHandler):
             return '<li>\n<p><input type="checkbox" disabled>' if match.group('checked') == ' ' \
                 else '<li>\n<p><input type="checkbox" disabled checked>'
 
-        # 限制插入图片长宽
-        def convert_img(match):
-            return match.group('alttext') + ' width=200, height=200'
-
         # 支持img out link
         def convert_src(match):
             return 'src="' + match.group('src') + '"'
 
         pattern_actions = {checked_pattern1: convert_checkbox1,
                            checked_pattern2: convert_checkbox2,
-                           img_pattern: convert_img,
                            src_pattern: convert_src}
         for pattern, action in pattern_actions.items():
             html_text = re.sub(pattern, action, html_text)
@@ -174,7 +166,6 @@ class CreateHandler(PeeweeRequestHandler):
 
 class SaveHandler(PeeweeRequestHandler):
     def post(self):
-	
         user = self.get_cookie('user', None)
         if not user:
             self.redirect('/')
