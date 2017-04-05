@@ -19,6 +19,7 @@ MARKDOWN_EXT = ('codehilite', 'extra')
 checked_pattern1 = re.compile(r'<li>\[(?P<checked>[xX ])\]')
 checked_pattern2 = re.compile(r'<li>\n<p>\[(?P<checked>[xX ])\]')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
+xss_pattern = re.compile(r'<script>((?!</script).)*</script>')
 
 DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', password='123456')
 
@@ -64,7 +65,6 @@ class Application(tornado.web.Application):
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=False,
-            debug=True,
             default_handler_class=NotFoundHandler
         )
         super(Application, self).__init__(handlers, **settings)
@@ -140,9 +140,13 @@ class PreviewHandler(PeeweeRequestHandler):
         def convert_src(match):
             return 'src="' + match.group('src') + '"'
 
-        pattern_actions = {checked_pattern1: convert_checkbox1,
-                           checked_pattern2: convert_checkbox2,
-                           src_pattern: convert_src}
+        def filter_xss(match):
+            return ' '
+
+        pattern_actions = {xss_pattern: filter_xss,
+                        checked_pattern1: convert_checkbox1,
+                        checked_pattern2: convert_checkbox2,
+                        src_pattern: convert_src}
         for pattern, action in pattern_actions.items():
             html_text = re.sub(pattern, action, html_text)
 
@@ -205,7 +209,6 @@ class DeleteHandler(PeeweeRequestHandler):
             if del_fid == cur_fid:
                 refresh = 1
             self.write({'refresh': refresh})
-	
 
 class ShowPreviewHandler(PeeweeRequestHandler):
     def get(self, fid):
@@ -234,19 +237,17 @@ class MydocsHandler(PeeweeRequestHandler):
 class ShowByFidHandler(PeeweeRequestHandler):
     def get(self, fid):
         user = self.get_cookie('user', None)
-	
+
         if not user:
             self.redirect('/')
         else:
-	    try:
-	        doc = Doc.get(Doc.fid == fid, Doc.author == user)
-	    except:
-		self.render('error.html', error='This page has not been developed yet.')
+            try:
+                doc = Doc.get(Doc.fid == fid, Doc.author == user)
+            except:
+                self.render('error.html', error='This page has not been developed yet.')
             else:
                 self.render('home.html', fid=fid, title=doc.title, raw=doc.raw, html=doc.html,
                             created=doc.created, github_name=user)
-          
-
 
 class NotFoundHandler(PeeweeRequestHandler):
     def get(self):
