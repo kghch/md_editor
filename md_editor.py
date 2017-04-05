@@ -19,7 +19,8 @@ MARKDOWN_EXT = ('codehilite', 'extra')
 checked_pattern1 = re.compile(r'<li>\[(?P<checked>[xX ])\]')
 checked_pattern2 = re.compile(r'<li>\n<p>\[(?P<checked>[xX ])\]')
 src_pattern = re.compile(r'src="&quot;(?P<src>[^&]*)&quot;"')
-xss_pattern = re.compile(r'<script>((?!</script).)*</script>')
+xss_pattern1 = re.compile(r'<script>')
+xss_pattern2 = re.compile(r'</script>')
 
 DB = peewee.MySQLDatabase('docs', host='127.0.0.1', port=3306, user='root', password='123456')
 
@@ -143,7 +144,8 @@ class PreviewHandler(PeeweeRequestHandler):
         def filter_xss(match):
             return ' '
 
-        pattern_actions = {xss_pattern: filter_xss,
+        pattern_actions = {xss_pattern1: filter_xss,
+                        xss_pattern2: filter_xss,
                         checked_pattern1: convert_checkbox1,
                         checked_pattern2: convert_checkbox2,
                         src_pattern: convert_src}
